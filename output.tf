@@ -100,3 +100,13 @@ output "redis_reader_endpoint_address" {
   value       = aws_elasticache_replication_group.default.reader_endpoint_address
 }
 
+output "redis_cli_default" {
+  description = "Redis cli command to test default user"
+  value       = "redis-cli -h ${aws_elasticache_replication_group.default.configuration_endpoint_address} -p 6379 --user default --pass ${var.redis_default_password}"
+}
+
+output "redis_cli_ratelimit" {
+  description = "Redis cli command to test ratelimit user"
+  value       = "redis-cli -h ${aws_elasticache_replication_group.default.configuration_endpoint_address} -p 6379 --user ratelimit --pass ${var.redis_ratelimit_password}"
+}
+

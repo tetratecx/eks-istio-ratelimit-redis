@@ -100,7 +100,7 @@ variable "redis_cluster_name" {
   type        = string
   description = "Name of the redis cluster"
 }
-variable "redis_admin_password" {
+variable "redis_default_password" {
   type        = string
   description = "Password of the redis admin user"
 }
