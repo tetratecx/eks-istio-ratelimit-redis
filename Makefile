@@ -55,16 +55,32 @@ istio-install: ## Install istio with helm
 		(echo 'Install failed, attempting upgrade...' && \
 		${HELM_CMD} upgrade istio-ingress tetratelabs/gateway -n istio-ingress --create-namespace --version ${ISTIO_VERSION} --wait)"
 
-deploy-redis: refresh-k8s-token ## Deploy local redis and redis-cli
+deploy-redis: refresh-k8s-token ## Deploy edis-cli
 	@echo "Deploy local redis and redis-cli..."
 	@/bin/bash -c "${KUBECTL_CMD} apply -f kubernetes/redis-cli.yaml"
-	@/bin/bash -c "${KUBECTL_CMD} apply -f kubernetes/redis-local.yaml"
 
-deploy-ratelimit: refresh-k8s-token ## Deploy local and remote connected ratelimit service
+deploy-ratelimit-local: refresh-k8s-token ## Deploy local connected ratelimit service
+	@echo "Deploy local and remote connected ratelimit service..."
+	@/bin/bash -c "${KUBECTL_CMD} apply -f kubernetes/redis-local.yaml"
+	@/bin/bash -c "${KUBECTL_CMD} apply -f kubernetes/ratelimit-config.yaml"
+	@/bin/bash -c "${KUBECTL_CMD} apply -f kubernetes/ratelimit-local.yaml"
+	@/bin/bash -c "${KUBECTL_CMD} apply -f kubernetes/ratelimit-envoyfilter-local.yaml"
+
+	@echo "${KUBECTL_CMD} exec -n ratelimit -it $$(${KUBECTL_CMD} get pods -n ratelimit -l app=redis-cli -o jsonpath='{.items[0].metadata.name}') \
+		-- redis-cli -h redis.ratelimit.svc.cluster.local -p 6379"
+
+undeploy-ratelimit-local: refresh-k8s-token ## Undeploy local connected ratelimit service
+	@echo "Deploy local and remote connected ratelimit service..."
+	@/bin/bash -c "${KUBECTL_CMD} delete -f kubernetes/redis-local.yaml"
+	@/bin/bash -c "${KUBECTL_CMD} delete -f kubernetes/ratelimit-config.yaml"
+	@/bin/bash -c "${KUBECTL_CMD} delete -f kubernetes/ratelimit-local.yaml"
+	@/bin/bash -c "${KUBECTL_CMD} delete -f kubernetes/ratelimit-envoyfilter-local.yaml"
+
+deploy-ratelimit-remote: refresh-k8s-token ## Deploy remote connected ratelimit service
 	@echo "Deploy local and remote connected ratelimit service..."
 	@/bin/bash -c "${KUBECTL_CMD} apply -f kubernetes/ratelimit-config.yaml"
-	@/bin/bash -c "${KUBECTL_CMD} apply -f kubernetes/ratelimit-local-redis.yaml"
-	@/bin/bash -c "${KUBECTL_CMD} apply -f kubernetes/ratelimit-remote-elasticache.yaml"
+	@/bin/bash -c "${KUBECTL_CMD} apply -f kubernetes/ratelimit-remote.yaml"
+	@/bin/bash -c "${KUBECTL_CMD} apply -f kubernetes/ratelimit-envoyfilter-remote.yaml"
 
 	@echo "${KUBECTL_CMD} exec -n ratelimit -it $$(${KUBECTL_CMD} get pods -n ratelimit -l app=redis-cli -o jsonpath='{.items[0].metadata.name}') \
 		-- redis-cli -h $$(jq -r '.redis_configuration_endpoint_address.value' output/terraform.json) \
@@ -72,13 +88,17 @@ deploy-ratelimit: refresh-k8s-token ## Deploy local and remote connected ratelim
 	@echo "${KUBECTL_CMD} exec -n ratelimit -it $$(${KUBECTL_CMD} get pods -n ratelimit -l app=redis-cli -o jsonpath='{.items[0].metadata.name}') \
 		-- redis-cli -h $$(jq -r '.redis_configuration_endpoint_address.value' output/terraform.json) \
 		-p 6379	--tls -c --user default --pass ${REDIS_DEFAULT_PASSWORD}"
-	@echo "${KUBECTL_CMD} exec -n ratelimit -it $$(${KUBECTL_CMD} get pods -n ratelimit -l app=redis-cli -o jsonpath='{.items[0].metadata.name}') \
-		-- redis-cli -h redis.ratelimit.svc.cluster.local -p 6379"
+
+undeploy-ratelimit-remote: refresh-k8s-token ## Undeploy remote connected ratelimit service
+	@echo "Deploy local and remote connected ratelimit service..."
+	@/bin/bash -c "${KUBECTL_CMD} delete -f kubernetes/ratelimit-config.yaml"
+	@/bin/bash -c "${KUBECTL_CMD} delete -f kubernetes/ratelimit-remote.yaml"
+	@/bin/bash -c "${KUBECTL_CMD} delete -f kubernetes/ratelimit-envoyfilter-remote.yaml"
 
 deploy-httpbin: ## Deploy test application httpbin
 	@echo "Deploy test application httpbin..."
 	@/bin/bash -c "${KUBECTL_CMD} apply -f kubernetes/httpbin.yaml"
 	@/bin/bash -c "${KUBECTL_CMD} apply -f kubernetes/httpbin-gateway.yaml"
 	@echo "Single request..."
-	@echo curl --resolve \"httpbin.tetrate.io:80:$$(dig +short $$(${KUBECTL_CMD} get services --namespace istio-ingress istio-ingress --output jsonpath='{.status.loadBalancer.ingress[0].hostname}') | head -n1)\" \"http://httpbin.tetrate.io/headers\"
+	@echo curl -v --resolve \"httpbin.tetrate.io:80:$$(dig +short $$(${KUBECTL_CMD} get services --namespace istio-ingress istio-ingress --output jsonpath='{.status.loadBalancer.ingress[0].hostname}') | head -n1)\" \"http://httpbin.tetrate.io/headers\"
 	
