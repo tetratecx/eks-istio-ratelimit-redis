@@ -8,15 +8,21 @@ help: ## This help
 
 
 # Variables
+ISTIO_VERSION       := 1.18.3
+TF_DIR              := ./terraform
+TF_PLAN_OUT         := terraform.plan
+
+ROUTE53_HOSTED_ZONE      := internal.tetrate.io
+KUBECONFIG               := output/kubeconfig.yaml
+TERRAFORM_OUTPUT         := output/terraform.json
+REDIS_DEFAULT_PASSWORD   := 2HZ41J9e6ts2O9Om24AQgC8ItyJJY6z2
+REDIS_RATELIMIT_PASSWORD := l522s7e5o6QNxpzhTlgeeWJrmv6Ri4hq
+
+HELM_CMD    := helm --kubeconfig ${KUBECONFIG}
+KUBECTL_CMD := kubectl --kubeconfig ${KUBECONFIG}
 TF_CMD      := terraform
-TF_DIR      := ./terraform
-TF_PLAN_OUT := terraform.plan
+TV_VARS			:= -var 'internal_zone=${ROUTE53_HOSTED_ZONE}' -var 'kubeconfig_file=${KUBECONFIG}' -var 'redis_default_password=${REDIS_DEFAULT_PASSWORD}' -var 'redis_ratelimit_password=${REDIS_RATELIMIT_PASSWORD}' 
 
-HELM_CMD 			:= helm --kubeconfig ${KUBECONFIG}
-ISTIO_VERSION := 1.18.3
-
-ROUTE53_HOSTED_ZONE := tetrate.internal
-KUBECONFIG 					:= output/kubeconfig.yaml
 
 terraform-up: ## Bring up aws infra with terraform
 	@echo "Bring up aws infra using terraform..."
@@ -24,19 +30,39 @@ terraform-up: ## Bring up aws infra with terraform
 	@/bin/bash -c "cd $(TF_DIR) && $(TF_CMD) validate"
 	@/bin/bash -c "cd $(TF_DIR) && $(TF_CMD) fmt"
 
-	@/bin/bash -c "cd $(TF_DIR) && $(TF_CMD) plan -out=$(TF_PLAN_OUT) -var 'internal_zone=${ROUTE53_HOSTED_ZONE}' -var 'kubeconfig_file=${KUBECONFIG}'"
+	@/bin/bash -c "cd $(TF_DIR) && $(TF_CMD) plan -out=$(TF_PLAN_OUT) ${TV_VARS}"
 	@/bin/bash -c "cd $(TF_DIR) && $(TF_CMD) apply $(TF_PLAN_OUT)"
+	@/bin/bash -c "cd $(TF_DIR) && $(TF_CMD) output -json > ../${TERRAFORM_OUTPUT}"
 
 terraform-down: ## Bring down aws infra with terraform
 	@echo "Bring down aws infra using terraform..."
 	@/bin/bash -c "cd $(TF_DIR) && $(TF_CMD) destroy"
 
+refresh-k8s-token: ## Refresh eks kubectl kubeconfig token
+	@/bin/bash -c "cd $(TF_DIR) && $(TF_CMD) apply -auto-approve -target=local_file.kubeconfig ${TV_VARS}"
+	@echo "k9s --kubeconfig ${KUBECONFIG} -A"
+
 istio-install: ## Install istio with helm
 	@/bin/bash -c "helm repo add tetratelabs https://tetratelabs.github.io/helm-charts"
-	@/bin/bash -c "helm repo upgrade"
-	@/bin/bash -c "helm install istio-base tetratelabs/base -n istio-system --create-namespace --version ${ISTIO_VERSION} --wait"
-	@/bin/bash -c "helm install istiod tetratelabs/istiod -n istio-system --version ${ISTIO_VERSION} --wait || \
-		helm upgrade istiod tetratelabs/istiod -n istio-system --version ${ISTIO_VERSION} --wait"
-	@/bin/bash -c "helm install istio-ingress tetratelabs/gateway -n istio-ingress --create-namespace --version ${ISTIO_VERSION} --wait || \
-		helm upgrade istio-ingress tetratelabs/gateway -n istio-ingress --create-namespace --version ${ISTIO_VERSION} --wait"
+	@/bin/bash -c "helm repo update"
+	@/bin/bash -c "${HELM_CMD} install istio-base tetratelabs/base -n istio-system --create-namespace --version ${ISTIO_VERSION} --wait || \
+		(echo 'Install failed, attempting upgrade...' && \
+		${HELM_CMD} upgrade istio-base tetratelabs/base -n istio-system --version ${ISTIO_VERSION} --wait)"
+	@/bin/bash -c "${HELM_CMD} install istiod tetratelabs/istiod -n istio-system --version ${ISTIO_VERSION} --wait || \
+		(echo 'Install failed, attempting upgrade...' && \
+		${HELM_CMD} upgrade istiod tetratelabs/istiod -n istio-system --version ${ISTIO_VERSION} --wait)"
+	@/bin/bash -c "${HELM_CMD} install istio-ingress tetratelabs/gateway -n istio-ingress --create-namespace --version ${ISTIO_VERSION} --wait || \
+		(echo 'Install failed, attempting upgrade...' && \
+		${HELM_CMD} upgrade istio-ingress tetratelabs/gateway -n istio-ingress --create-namespace --version ${ISTIO_VERSION} --wait)"
 
+ratelimit-install: ## Install ratelimit services
+	@/bin/bash -c "${KUBECTL_CMD} apply -f kubernetes/redis-cli.yaml"
+	@/bin/bash -c "${KUBECTL_CMD} apply -f kubernetes/redis-local.yaml"
+	@echo "${KUBECTL_CMD} exec -n ratelimit -it $$(${KUBECTL_CMD} get pods -n ratelimit -l app=redis-cli -o jsonpath='{.items[0].metadata.name}') \
+		-- redis-cli -h $$(jq -r '.redis_configuration_endpoint_address.value' output/terraform.json) \
+		-p 6379	--tls -c --user ratelimit --pass ${REDIS_RATELIMIT_PASSWORD}"
+	@echo "${KUBECTL_CMD} exec -n ratelimit -it $$(${KUBECTL_CMD} get pods -n ratelimit -l app=redis-cli -o jsonpath='{.items[0].metadata.name}') \
+		-- redis-cli -h $$(jq -r '.redis_configuration_endpoint_address.value' output/terraform.json) \
+		-p 6379	--tls -c --user default --pass ${REDIS_DEFAULT_PASSWORD}"
+	@echo "${KUBECTL_CMD} exec -n ratelimit -it $$(${KUBECTL_CMD} get pods -n ratelimit -l app=redis-cli -o jsonpath='{.items[0].metadata.name}') \
+		-- redis-cli -h redis.ratelimit.svc.cluster.local -p 6379"

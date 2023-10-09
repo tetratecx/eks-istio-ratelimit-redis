@@ -9,4 +9,6 @@ module "eks-kubeconfig" {
 resource "local_file" "kubeconfig" {
   content  = module.eks-kubeconfig.kubeconfig
   filename = "../${var.kubeconfig_file}"
+
+  depends_on = [module.eks-kubeconfig]
 }

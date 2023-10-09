@@ -1,2 +1,5 @@
 # Kubeconfig
-kubeconfig*
+kubeconfig.yaml
+
+# Terraform output
+terraform.json

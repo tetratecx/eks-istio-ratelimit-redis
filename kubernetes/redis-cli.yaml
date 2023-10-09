@@ -22,12 +22,6 @@ spec:
       containers:
         - args: ["infinity"]
           command: ["sleep"]
-          env:
-            - name: REDISCLI_AUTH
-              valueFrom:
-                secretKeyRef:
-                  key: password
-                  name: redis-password
           image: redis:alpine
           name: redis-cli
           resources:
