@@ -1,8 +1,8 @@
 # EKS Istio Rate Limit with Redis
-This repository provides a comprehensive setup to implement rate limiting in an EKS (Elastic Kubernetes Service) environment using Istio and Redis.
+This repository provides a comprehensive setup to implement global rate limiting in an EKS (Elastic Kubernetes Service) environment using Istio and Redis.
 
 ## Overview
-The repository contains configurations and scripts to set up an EKS cluster, deploy Istio, and implement rate limiting using both local and remote Redis instances.
+The repository contains configurations and scripts to set up an EKS cluster, deploy Istio, and implement global rate limiting using both local and remote Redis instances.
 
 ## Features
 - **EKS Setup:** Terraform scripts to provision an EKS cluster.
@@ -82,4 +82,4 @@ make clean
 This will destroy the terraform infra and remove output artifacts.
 
 ##   Conclusion
-This repository provides a seamless way to integrate rate limiting in an EKS environment using Istio and Redis. It offers flexibility in choosing between local and remote rate limiting and provides a sample application to demonstrate the functionality.
+This repository provides a seamless way to integrate rate limiting in an EKS environment using Istio and Redis. It offers flexibility in choosing between global rate limiting with local and remote redis and provides a sample application to demonstrate the functionality.
