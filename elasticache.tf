@@ -73,7 +73,7 @@ resource "aws_elasticache_user" "default" {
 }
 
 resource "aws_elasticache_user" "ratelimit" {
-  user_id       = "istio-zratelimit"
+  user_id       = "istio-ratelimit"
   user_name     = "ratelimit"
   access_string = "on ~* +@all"
   engine        = "REDIS"
