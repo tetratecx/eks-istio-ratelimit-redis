@@ -1,0 +1,36 @@
+---
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: httpbin-gateway
+  namespace: istio-ingress
+spec:
+  selector:
+    istio: ingress
+  servers:
+    - hosts:
+        - httpbin.tetrate.io
+      port:
+        name: http-httpbin
+        number: 80
+        protocol: HTTP
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: httpbin-vs
+  namespace: istio-ingress
+spec:
+  gateways:
+    - istio-ingress/httpbin-gateway
+  hosts:
+    - httpbin.tetrate.io
+  http:
+    - match:
+        - uri:
+            prefix: /
+      route:
+        - destination:
+            host: httpbin.httpbin.svc.cluster.local
+            port:
+              number: 80

@@ -1,0 +1,102 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: ratelimit
+  name: ratelimit
+  namespace: ratelimit
+spec:
+  ports:
+    - name: http-port
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    - name: grpc-port
+      port: 8081
+      protocol: TCP
+      targetPort: 8081
+    - name: http-debug
+      port: 6070
+      protocol: TCP
+      targetPort: 6070
+  selector:
+    app: ratelimit
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ratelimit
+  namespace: ratelimit
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ratelimit
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: ratelimit
+    spec:
+      containers:
+        - command: ["/bin/ratelimit"]
+          env:
+            - name: GRPC_HOST
+              value: '::'
+            - name: HOST
+              value: '::'
+            - name: LOG_LEVEL
+              value: trace
+            - name: REDIS_AUTH
+              value: ratelimit:l522s7e5o6QNxpzhTlgeeWJrmv6Ri4hq
+            - name: REDIS_PERSECOND_AUTH
+              value: ratelimit:l522s7e5o6QNxpzhTlgeeWJrmv6Ri4hq
+            - name: REDIS_PERSECOND_TLS
+              value: 'true'
+            - name: REDIS_PERSECOND_URL
+              value: redis.tetrate.internal:6379
+            - name: REDIS_PIPELINE_LIMIT
+              value: '1'
+            - name: REDIS_PIPELINE_WINDOWS
+              value: 1s
+            - name: REDIS_SOCKET_TYPE
+              value: tcp
+            - name: REDIS_TLS
+              value: 'true'
+            - name: REDIS_TYPE
+              value: CLUSTER
+            - name: REDIS_URL
+              value: redis.tetrate.internal:6379
+            - name: RUNTIME_IGNOREDOTFILES
+              value: 'true'
+            - name: RUNTIME_ROOT
+              value: /data
+            - name: RUNTIME_SUBDIRECTORY
+              value: ratelimit
+            - name: RUNTIME_WATCH_ROOT
+              value: 'true'
+            - name: USE_STATSD
+              value: 'false'
+          image: envoyproxy/ratelimit:9d8d70a8
+          imagePullPolicy: Always
+          name: ratelimit
+          ports:
+            - containerPort: 8080
+            - containerPort: 8081
+            - containerPort: 6070
+          resources:
+            limits:
+              cpu: 250m
+              memory: 128Mi
+            requests:
+              cpu: 125m
+              memory: 64Mi
+          volumeMounts:
+            - mountPath: /data/ratelimit/config
+              name: config-volume
+      volumes:
+        - configMap:
+            name: ratelimit-config
+          name: config-volume

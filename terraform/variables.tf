@@ -6,7 +6,6 @@ variable "region" {
 }
 
 ##### VPC Variables #######
-
 variable "vpc_name" {
   type        = string
   description = "Name to be used on all the resources as identifier"
@@ -66,8 +65,13 @@ variable "vpc_tags" {
   }
 }
 
+##### DNS Variables #######
+variable "internal_zone" {
+  type        = string
+  description = "Internal dns zone"
+}
 
-##### EkS Cluster Variables #######
+##### EKS Cluster Variables #######
 variable "eks_cluster_name" {
   type        = string
   description = "Name of the EKS cluster"
@@ -94,6 +98,10 @@ variable "eks_tags" {
     Environment = "dev"
   }
 }
+variable "kubeconfig_file" {
+  type        = string
+  description = "Kubeconfig output file"
+}
 
 ##### Elasticache Redis Cluster Variables #######
 variable "redis_version" {
@@ -115,14 +123,4 @@ variable "redis_default_password" {
 variable "redis_ratelimit_password" {
   type        = string
   description = "Password of the redis ratelimit user"
-}
-
-##### Istio Variables #######
-variable "istio_version" {
-  type        = string
-  description = "Version of istio"
-}
-variable "istio_helm_repository" {
-  type        = string
-  description = "Helm repository of istio"
 }

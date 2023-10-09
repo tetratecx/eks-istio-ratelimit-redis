@@ -1,0 +1,56 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: ratelimit
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+        - image: redis:alpine
+          imagePullPolicy: Always
+          name: redis
+          ports:
+            - containerPort: 6379
+              name: redis
+          resources:
+            limits:
+              cpu: 250m
+              memory: 128Mi
+            requests:
+              cpu: 125m
+              memory: 64Mi
+      restartPolicy: Always
+      serviceAccountName: ''
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: ratelimit
+  name: ratelimit
+  namespace: ratelimit
+spec:
+  ports:
+    - name: http-port
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    - name: grpc-port
+      port: 8081
+      protocol: TCP
+      targetPort: 8081
+    - name: http-debug
+      port: 6070
+      protocol: TCP
+      targetPort: 6070
+  selector:
+    app: ratelimit

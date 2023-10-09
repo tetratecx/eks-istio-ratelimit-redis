@@ -8,5 +8,5 @@ module "eks-kubeconfig" {
 
 resource "local_file" "kubeconfig" {
   content  = module.eks-kubeconfig.kubeconfig
-  filename = "kubeconfig-${var.eks_cluster_name}.yaml"
+  filename = "../${var.kubeconfig_file}"
 }
