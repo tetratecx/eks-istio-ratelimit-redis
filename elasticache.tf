@@ -53,9 +53,10 @@ resource "aws_elasticache_replication_group" "default" {
   description          = "Redis cluster for Hashicorp ElastiCache example"
 
   automatic_failover_enabled = true
+  engine_version             = var.redis_version
   node_type                  = "cache.m4.large"
   num_node_groups            = 2
-  parameter_group_name       = "default.redis7.cluster.on"
+  parameter_group_name       = var.redis_parameter_group_name
   port                       = 6379
   replicas_per_node_group    = 1
   security_group_ids         = [aws_security_group.elasticache.id]

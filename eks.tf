@@ -11,6 +11,21 @@ module "eks" {
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
 
+  cluster_addons = {
+    coredns = {
+      most_recent       = true
+    }
+    kube-proxy = {
+      most_recent       = true
+    }
+    aws-ebs-csi-driver = {
+      most_recent       = true
+    }
+    vpc-cni = {
+      most_recent       = true
+    }
+  }
+
   eks_managed_node_group_defaults = {
     disk_size = 30
   }
@@ -43,24 +58,58 @@ module "eks" {
     }
   }
 
+  cluster_security_group_additional_rules = {
+    egress_nodes_ephemeral_ports_tcp = {
+      description                = "all"
+      protocol                   = "-1"
+      from_port                  = 0
+      to_port                    = 0
+      type                       = "egress"
+      source_node_security_group = true
+    }
+
+    inress_ec2_tcp = {
+      description                   = "Access EKS externally"
+      protocol                      = "tcp"
+      from_port                     = 443
+      to_port                       = 443
+      type                          = "ingress"
+      cidr_blocks                   = ["0.0.0.0/0"]
+      source_cluster_security_group = false
+    }
+
+  }
+
+  node_security_group_additional_rules = {
+    ingress_self_all = {
+      description = "Node to node all ports/protocols"
+      protocol    = "-1"
+      from_port   = 0
+      to_port     = 0
+      type        = "ingress"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
+    egress_all = {
+      description = "Node all egress"
+      protocol    = "-1"
+      from_port   = 0
+      to_port     = 0
+      type        = "egress"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
+  }
+
   tags = var.eks_tags
 }
 
 data "aws_eks_cluster" "cluster" {
   name = module.eks.cluster_name
+
+  depends_on = [module.eks.cluster_name]
 }
 
 data "aws_eks_cluster_auth" "cluster" {
   name = module.eks.cluster_name
-}
 
-provider "kubernetes" {
-  host                   = data.aws_eks_cluster.cluster.endpoint
-  cluster_ca_certificate = base64decode(data.aws_eks_cluster.cluster.certificate_authority.0.data)
-  token                  = data.aws_eks_cluster_auth.cluster.token
-  exec {
-    api_version = "client.authentication.k8s.io/v1beta1"
-    args        = ["eks", "get-token", "--cluster-name", data.aws_eks_cluster.cluster.id]
-    command     = "aws"
-  }
+  depends_on = [module.eks.cluster_name]
 }

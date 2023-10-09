@@ -96,6 +96,14 @@ variable "eks_tags" {
 }
 
 ##### Elasticache Redis Cluster Variables #######
+variable "redis_version" {
+  type        = string
+  description = "Version of the redis cluster"
+}
+variable "redis_parameter_group_name" {
+  type        = string
+  description = "Parameter group name of the redis cluster"
+}
 variable "redis_cluster_name" {
   type        = string
   description = "Name of the redis cluster"
@@ -107,4 +115,14 @@ variable "redis_default_password" {
 variable "redis_ratelimit_password" {
   type        = string
   description = "Password of the redis ratelimit user"
+}
+
+##### Istio Variables #######
+variable "istio_version" {
+  type        = string
+  description = "Version of istio"
+}
+variable "istio_helm_repository" {
+  type        = string
+  description = "Helm repository of istio"
 }
