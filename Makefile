@@ -55,7 +55,7 @@ istio-install: ## Install istio with helm
 		(echo 'Install failed, attempting upgrade...' && \
 		${HELM_CMD} upgrade istio-ingress tetratelabs/gateway -n istio-ingress --create-namespace --version ${ISTIO_VERSION} --wait)"
 
-deploy-redis: refresh-k8s-token ## Deploy edis-cli
+deploy-redis-cli: refresh-k8s-token ## Deploy redis-cli
 	@echo "Deploy local redis and redis-cli..."
 	@/bin/bash -c "${KUBECTL_CMD} apply -f kubernetes/redis-cli.yaml"
 
@@ -101,4 +101,9 @@ deploy-httpbin: ## Deploy test application httpbin
 	@/bin/bash -c "${KUBECTL_CMD} apply -f kubernetes/httpbin-gateway.yaml"
 	@echo "Single request..."
 	@echo curl -v --resolve \"httpbin.tetrate.io:80:$$(dig +short $$(${KUBECTL_CMD} get services --namespace istio-ingress istio-ingress --output jsonpath='{.status.loadBalancer.ingress[0].hostname}') | head -n1)\" \"http://httpbin.tetrate.io/headers\"
-	
+
+clean-artifacts:
+	rm -f output/kubeconfig.yaml
+	rm -f output/terraform.json
+
+clean: terraform-down clean-artifacts ## Clean up the environment
