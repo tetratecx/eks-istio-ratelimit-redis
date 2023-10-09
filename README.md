@@ -5,16 +5,16 @@ This repository provides a comprehensive setup to implement rate limiting in an 
 The repository contains configurations and scripts to set up an EKS cluster, deploy Istio, and implement rate limiting using both local and remote Redis instances.
 
 ## Features
-**EKS Setup:** Terraform scripts to provision an EKS cluster.
-**Istio Integration:** Configuration files to deploy Istio using helm.
-**Rate Limiting:** Implement rate limiting using Istio and Redis. Both local and remote (AWS ElastiCache) rate limiting configurations are provided.
-**Redis:** Configuration to deploy Redis locally within the EKS cluster and also to configure a remote Redis instance using AWS ElastiCache.
-**Sample Application:** Deployment of a sample httpbin application to demonstrate the rate limiting functionality.
+- **EKS Setup:** Terraform scripts to provision an EKS cluster.
+- **Istio Integration:** Configuration files to deploy Istio using helm.
+- **Rate Limiting:** Implement rate limiting using Istio and Redis. Both local and remote (AWS ElastiCache) rate limiting configurations are provided.
+- **Redis:** Configuration to deploy Redis locally within the EKS cluster and also to configure a remote Redis instance using AWS ElastiCache.
+- **Sample Application:** Deployment of a sample httpbin application to demonstrate the rate limiting functionality.
 
 ## Directory Structure
-**kubernetes/:** Contains Kubernetes configuration files for deploying Istio, Redis, rate limit configurations, and the sample httpbin application.
-**terraform/:** Contains Terraform scripts for provisioning the EKS cluster, VPC, and other related AWS resources.
-**output/:** Contains Kubeconfig and Terraform output artifacts.
+- **kubernetes/:** Contains Kubernetes configuration files for deploying Istio, Redis, rate limit configurations, and the sample httpbin application.
+- **terraform/:** Contains Terraform scripts for provisioning the EKS cluster, VPC, and other related AWS resources.
+- **output/:** Contains Kubeconfig and Terraform output artifacts.
 
 ## Quick Start
 
