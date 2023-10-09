@@ -55,9 +55,17 @@ istio-install: ## Install istio with helm
 		(echo 'Install failed, attempting upgrade...' && \
 		${HELM_CMD} upgrade istio-ingress tetratelabs/gateway -n istio-ingress --create-namespace --version ${ISTIO_VERSION} --wait)"
 
-ratelimit-install: ## Install ratelimit services
+deploy-redis: refresh-k8s-token ## Deploy local redis and redis-cli
+	@echo "Deploy local redis and redis-cli..."
 	@/bin/bash -c "${KUBECTL_CMD} apply -f kubernetes/redis-cli.yaml"
 	@/bin/bash -c "${KUBECTL_CMD} apply -f kubernetes/redis-local.yaml"
+
+deploy-ratelimit: refresh-k8s-token ## Deploy local and remote connected ratelimit service
+	@echo "Deploy local and remote connected ratelimit service..."
+	@/bin/bash -c "${KUBECTL_CMD} apply -f kubernetes/ratelimit-config.yaml"
+	@/bin/bash -c "${KUBECTL_CMD} apply -f kubernetes/ratelimit-local-redis.yaml"
+	@/bin/bash -c "${KUBECTL_CMD} apply -f kubernetes/ratelimit-remote-elasticache.yaml"
+
 	@echo "${KUBECTL_CMD} exec -n ratelimit -it $$(${KUBECTL_CMD} get pods -n ratelimit -l app=redis-cli -o jsonpath='{.items[0].metadata.name}') \
 		-- redis-cli -h $$(jq -r '.redis_configuration_endpoint_address.value' output/terraform.json) \
 		-p 6379	--tls -c --user ratelimit --pass ${REDIS_RATELIMIT_PASSWORD}"
@@ -66,3 +74,11 @@ ratelimit-install: ## Install ratelimit services
 		-p 6379	--tls -c --user default --pass ${REDIS_DEFAULT_PASSWORD}"
 	@echo "${KUBECTL_CMD} exec -n ratelimit -it $$(${KUBECTL_CMD} get pods -n ratelimit -l app=redis-cli -o jsonpath='{.items[0].metadata.name}') \
 		-- redis-cli -h redis.ratelimit.svc.cluster.local -p 6379"
+
+deploy-httpbin: ## Deploy test application httpbin
+	@echo "Deploy test application httpbin..."
+	@/bin/bash -c "${KUBECTL_CMD} apply -f kubernetes/httpbin.yaml"
+	@/bin/bash -c "${KUBECTL_CMD} apply -f kubernetes/httpbin-gateway.yaml"
+	@echo "Single request..."
+	@echo curl --resolve \"httpbin.tetrate.io:80:$$(dig +short $$(${KUBECTL_CMD} get services --namespace istio-ingress istio-ingress --output jsonpath='{.status.loadBalancer.ingress[0].hostname}') | head -n1)\" \"http://httpbin.tetrate.io/headers\"
+	

@@ -3,8 +3,8 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    app: ratelimit
-  name: ratelimit
+    app: ratelimit-remote
+  name: ratelimit-remote
   namespace: ratelimit
 spec:
   ports:
@@ -21,24 +21,24 @@ spec:
       protocol: TCP
       targetPort: 6070
   selector:
-    app: ratelimit
+    app: ratelimit-remote
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ratelimit
+  name: ratelimit-remote
   namespace: ratelimit
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: ratelimit
+      app: ratelimit-remote
   strategy:
     type: Recreate
   template:
     metadata:
       labels:
-        app: ratelimit
+        app: ratelimit-remote
     spec:
       containers:
         - command: ["/bin/ratelimit"]
@@ -56,7 +56,7 @@ spec:
             - name: REDIS_PERSECOND_TLS
               value: 'true'
             - name: REDIS_PERSECOND_URL
-              value: redis.internal.tetrate.io:6379
+              value: clustercfg.eks-istio-redis.7lqtvy.euw2.cache.amazonaws.com:6379
             - name: REDIS_PIPELINE_LIMIT
               value: '1'
             - name: REDIS_PIPELINE_WINDOWS
@@ -68,7 +68,7 @@ spec:
             - name: REDIS_TYPE
               value: CLUSTER
             - name: REDIS_URL
-              value: redis.tetrate.internal:6379
+              value: clustercfg.eks-istio-redis.7lqtvy.euw2.cache.amazonaws.com:6379
             - name: RUNTIME_IGNOREDOTFILES
               value: 'true'
             - name: RUNTIME_ROOT
@@ -79,9 +79,9 @@ spec:
               value: 'true'
             - name: USE_STATSD
               value: 'false'
-          image: envoyproxy/ratelimit:9d8d70a8
+          image: envoyproxy/ratelimit:master
           imagePullPolicy: Always
-          name: ratelimit
+          name: ratelimit-remote
           ports:
             - containerPort: 8080
             - containerPort: 8081

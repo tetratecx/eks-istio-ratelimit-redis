@@ -3,8 +3,8 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    app: ratelimit
-  name: ratelimit
+    app: ratelimit-local
+  name: ratelimit-local
   namespace: ratelimit
 spec:
   ports:
@@ -21,67 +21,51 @@ spec:
       protocol: TCP
       targetPort: 6070
   selector:
-    app: ratelimit
+    app: ratelimit-local
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ratelimit
+  name: ratelimit-local
   namespace: ratelimit
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: ratelimit
+      app: ratelimit-local
   strategy:
     type: Recreate
   template:
     metadata:
       labels:
-        app: ratelimit
+        app: ratelimit-local
     spec:
       containers:
         - command: ["/bin/ratelimit"]
           env:
             - name: GRPC_HOST
-              value: '::'
+              value: "::"
             - name: HOST
-              value: '::'
+              value: "::"
             - name: LOG_LEVEL
               value: trace
-            - name: REDIS_AUTH
-              value: ratelimit:l522s7e5o6QNxpzhTlgeeWJrmv6Ri4hq
-            - name: REDIS_PERSECOND_AUTH
-              value: ratelimit:l522s7e5o6QNxpzhTlgeeWJrmv6Ri4hq
-            - name: REDIS_PERSECOND_TLS
-              value: 'true'
-            - name: REDIS_PERSECOND_URL
-              value: redis.tetrate.internal:6379
-            - name: REDIS_PIPELINE_LIMIT
-              value: '1'
-            - name: REDIS_PIPELINE_WINDOWS
-              value: 1s
             - name: REDIS_SOCKET_TYPE
               value: tcp
-            - name: REDIS_TLS
-              value: 'true'
-            - name: REDIS_TYPE
-              value: CLUSTER
             - name: REDIS_URL
-              value: redis.tetrate.internal:6379
+              value: redis.ratelimit.svc.cluster.local:6379
             - name: RUNTIME_IGNOREDOTFILES
-              value: 'true'
+              value: "true"
             - name: RUNTIME_ROOT
               value: /data
             - name: RUNTIME_SUBDIRECTORY
               value: ratelimit
             - name: RUNTIME_WATCH_ROOT
-              value: 'true'
+              value: "false"
             - name: USE_STATSD
-              value: 'false'
-          image: envoyproxy/ratelimit:9d8d70a8
+              value: "false"
+          image: envoyproxy/ratelimit:master
           imagePullPolicy: Always
-          name: ratelimit
+          name: ratelimit-local
           ports:
             - containerPort: 8080
             - containerPort: 8081
